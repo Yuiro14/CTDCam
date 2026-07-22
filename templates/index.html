@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Camera Dashboard</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; color: #222; }
+    h1 { font-size: 1.4rem; }
+    section { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+    .var-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #eee; }
+    .var-row:last-child { border-bottom: none; }
+    button { padding: 8px 14px; border: none; border-radius: 6px; background: #2563eb; color: white; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    input { padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
+    label { display: block; margin-top: 8px; font-size: 0.9rem; color: #555; }
+    ul { padding-left: 18px; }
+    a { color: #2563eb; }
+  </style>
+</head>
+<body>
+  <h1>📷 Camera Dashboard</h1>
+
+  <section>
+    <h2>Status</h2>
+    <div class="var-row"><span>Resolution</span><span>{{ config.resolution }}</span></div>
+    <div class="var-row"><span>Capture interval (s)</span><span>{{ config.interval_seconds }}</span></div>
+    <div class="var-row"><span>Captures taken</span><span>{{ config.capture_count }}</span></div>
+  </section>
+
+  <section>
+    <h2>Actions</h2>
+    <form action="{{ url_for('trigger_capture') }}" method="post">
+      <button type="submit">Capture Now</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Settings</h2>
+    <form action="{{ url_for('update_settings') }}" method="post">
+      <label for="resolution">Resolution</label>
+      <input id="resolution" name="resolution" value="{{ config.resolution }}">
+
+      <label for="interval_seconds">Interval (seconds)</label>
+      <input id="interval_seconds" name="interval_seconds" type="number" value="{{ config.interval_seconds }}">
+
+      <br><br>
+      <button type="submit">Save Settings</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Captured Files</h2>
+    {% if files %}
+      <ul>
+        {% for f in files %}
+          <li><a href="{{ url_for('download_file', filename=f) }}">{{ f }}</a></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No files yet.</p>
+    {% endif %}
+  </section>
+</body>
+</html>
