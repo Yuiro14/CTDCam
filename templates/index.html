@@ -4,60 +4,191 @@
   <meta charset="utf-8">
   <title>Camera Dashboard</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; color: #222; }
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #222; }
     h1 { font-size: 1.4rem; }
+    h2 { font-size: 1.1rem; margin-top: 0; }
     section { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
     .var-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #eee; }
     .var-row:last-child { border-bottom: none; }
+    .status { font-weight: 600; }
+    .status.running { color: #16a34a; }
+    .status.stopped { color: #dc2626; }
     button { padding: 8px 14px; border: none; border-radius: 6px; background: #2563eb; color: white; cursor: pointer; }
     button:hover { background: #1d4ed8; }
-    input { padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
+    button.danger { background: #dc2626; }
+    button.danger:hover { background: #b91c1c; }
+    input[type=text], input[type=number] { padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 160px; }
     label { display: block; margin-top: 8px; font-size: 0.9rem; color: #555; }
-    ul { padding-left: 18px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
+    .btn-row { display: flex; gap: 8px; margin-top: 12px; }
+    ul { padding-left: 18px; max-height: 200px; overflow-y: auto; }
     a { color: #2563eb; }
+    fieldset { border: 1px solid #ccc; border-radius: 6px; margin-top: 8px; }
+    pre.log { background: #111; color: #ddd; padding: 10px; border-radius: 6px; font-size: 0.78rem;
+              max-height: 180px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+    .log-label { font-size: 0.85rem; color: #555; margin-top: 10px; margin-bottom: 4px; }
+    .refresh-note { font-size: 0.8rem; color: #888; }
   </style>
 </head>
 <body>
   <h1>📷 Camera Dashboard</h1>
+  <p class="refresh-note">Reload the page to refresh status and logs.</p>
 
+  <!-- ================= PHOTO ================= -->
   <section>
-    <h2>Status</h2>
-    <div class="var-row"><span>Resolution</span><span>{{ config.resolution }}</span></div>
-    <div class="var-row"><span>Capture interval (s)</span><span>{{ config.interval_seconds }}</span></div>
-    <div class="var-row"><span>Captures taken</span><span>{{ config.capture_count }}</span></div>
+    <h2>Photo Capture Loop</h2>
+    <div class="var-row">
+      <span>Status</span>
+      <span class="status {{ 'running' if photo_running else 'stopped' }}">
+        {{ 'RUNNING' if photo_running else 'STOPPED' }}
+      </span>
+    </div>
+
+    <div class="btn-row">
+      <form action="{{ url_for('start_photo') }}" method="post">
+        <button type="submit" {{ 'disabled' if photo_running else '' }}>Start</button>
+      </form>
+      <form action="{{ url_for('stop_photo') }}" method="post">
+        <button type="submit" class="danger" {{ '' if photo_running else 'disabled' }}>Stop</button>
+      </form>
+    </div>
+
+    <fieldset>
+      <legend>Settings (saving restarts the loop)</legend>
+      <form action="{{ url_for('update_photo_settings') }}" method="post">
+        <div class="form-grid">
+          <div>
+            <label for="p_device">Device</label>
+            <input id="p_device" name="device" type="text" value="{{ config.photo.device }}">
+          </div>
+          <div>
+            <label for="p_resolution">Resolution</label>
+            <input id="p_resolution" name="resolution" type="text" value="{{ config.photo.resolution }}">
+          </div>
+          <div>
+            <label for="p_input_format">Input format</label>
+            <input id="p_input_format" name="input_format" type="text" value="{{ config.photo.input_format }}">
+          </div>
+          <div>
+            <label for="p_interval">Interval (s)</label>
+            <input id="p_interval" name="interval" type="number" value="{{ config.photo.interval }}">
+          </div>
+          <div>
+            <label for="p_warmup_frames">Warmup frames</label>
+            <input id="p_warmup_frames" name="warmup_frames" type="number" value="{{ config.photo.warmup_frames }}">
+          </div>
+          <div>
+            <label for="p_target_dir">Target dir</label>
+            <input id="p_target_dir" name="target_dir" type="text" value="{{ config.photo.target_dir }}">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button type="submit">Save &amp; Restart</button>
+        </div>
+      </form>
+    </fieldset>
+
+    <div class="log-label">Recent log / errors:</div>
+    <pre class="log">{{ photo_log }}</pre>
   </section>
 
+  <!-- ================= VIDEO ================= -->
   <section>
-    <h2>Actions</h2>
-    <form action="{{ url_for('trigger_capture') }}" method="post">
-      <button type="submit">Capture Now</button>
-    </form>
+    <h2>Video Capture</h2>
+    <div class="var-row">
+      <span>Status</span>
+      <span class="status {{ 'running' if video_running else 'stopped' }}">
+        {{ 'RUNNING' if video_running else 'STOPPED' }}
+      </span>
+    </div>
+    <p style="font-size:0.85rem;color:#777;">
+      Records continuously in {{ config.video.segment_minutes }}-minute segments, so a sudden
+      power loss only affects the segment currently being written -- earlier segments stay intact
+      and playable. If ffmpeg fails (e.g. camera not ready yet at boot) it retries automatically.
+    </p>
+
+    <div class="btn-row">
+      <form action="{{ url_for('start_video') }}" method="post">
+        <button type="submit" {{ 'disabled' if video_running else '' }}>Start</button>
+      </form>
+      <form action="{{ url_for('stop_video') }}" method="post">
+        <button type="submit" class="danger" {{ '' if video_running else 'disabled' }}>Stop</button>
+      </form>
+    </div>
+
+    <fieldset>
+      <legend>Settings (saving restarts recording)</legend>
+      <form action="{{ url_for('update_video_settings') }}" method="post">
+        <label>FPS preset</label>
+        <label style="display:inline;">
+          <input type="radio" name="fps" value="15" {{ 'checked' if config.video.fps|string == '15' else '' }}>
+          15 fps
+        </label>
+        <label style="display:inline; margin-left:12px;">
+          <input type="radio" name="fps" value="10" {{ 'checked' if config.video.fps|string == '10' else '' }}>
+          10 fps
+        </label>
+
+        <div class="form-grid" style="margin-top:8px;">
+          <div>
+            <label for="v_device">Device</label>
+            <input id="v_device" name="device" type="text" value="{{ config.video.device }}">
+          </div>
+          <div>
+            <label for="v_resolution">Resolution</label>
+            <input id="v_resolution" name="resolution" type="text" value="{{ config.video.resolution }}">
+          </div>
+          <div>
+            <label for="v_input_format">Input format</label>
+            <input id="v_input_format" name="input_format" type="text" value="{{ config.video.input_format }}">
+          </div>
+          <div>
+            <label for="v_bitrate">Bitrate</label>
+            <input id="v_bitrate" name="bitrate" type="text" value="{{ config.video.bitrate }}">
+          </div>
+          <div>
+            <label for="v_segment_minutes">Segment length (min)</label>
+            <input id="v_segment_minutes" name="segment_minutes" type="number" value="{{ config.video.segment_minutes }}">
+          </div>
+          <div>
+            <label for="v_target_dir">Target dir</label>
+            <input id="v_target_dir" name="target_dir" type="text" value="{{ config.video.target_dir }}">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button type="submit">Save &amp; Restart</button>
+        </div>
+      </form>
+    </fieldset>
+
+    <div class="log-label">Recent log / errors:</div>
+    <pre class="log">{{ video_log }}</pre>
   </section>
 
+  <!-- ================= FILES ================= -->
   <section>
-    <h2>Settings</h2>
-    <form action="{{ url_for('update_settings') }}" method="post">
-      <label for="resolution">Resolution</label>
-      <input id="resolution" name="resolution" value="{{ config.resolution }}">
-
-      <label for="interval_seconds">Interval (seconds)</label>
-      <input id="interval_seconds" name="interval_seconds" type="number" value="{{ config.interval_seconds }}">
-
-      <br><br>
-      <button type="submit">Save Settings</button>
-    </form>
-  </section>
-
-  <section>
-    <h2>Captured Files</h2>
-    {% if files %}
+    <h2>Photo Captures</h2>
+    {% if photo_files %}
       <ul>
-        {% for f in files %}
-          <li><a href="{{ url_for('download_file', filename=f) }}">{{ f }}</a></li>
+        {% for f in photo_files %}
+          <li><a href="{{ url_for('download_photo', filename=f) }}">{{ f }}</a></li>
         {% endfor %}
       </ul>
     {% else %}
-      <p>No files yet.</p>
+      <p>No photo captures yet.</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2>Video Captures</h2>
+    {% if video_files %}
+      <ul>
+        {% for f in video_files %}
+          <li><a href="{{ url_for('download_video', filename=f) }}">{{ f }}</a></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No video captures yet.</p>
     {% endif %}
   </section>
 </body>

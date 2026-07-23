@@ -1,0 +1,58 @@
+
+--- starting photo process ---
+
+--- starting photo process ---
+Capture loop starting.
+  Device:      /dev/video0
+  Resolution:  1920x1080
+  Interval:    15s
+  Warmup:      5 frames
+  Target dir:  /Users/yuiro_14/Projects/Code/CTDCam/captures
+Press Ctrl+C to stop.
+
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260722_222501
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260722_222516
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260722_222531
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260722_222546
+Terminated: 15             sleep "$SLEEP_TIME"
+
+Stopping capture loop.
+
+--- starting photo process ---
+Capture loop starting.
+  Device:      /dev/video0
+  Resolution:  1920x1080
+  Interval:    15s
+  Warmup:      5 frames
+  Target dir:  /Users/yuiro_14/Projects/Code/CTDCam/captures
+Press Ctrl+C to stop.
+
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260722_222713
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260722_222728
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260722_222743
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260722_222758
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260722_222813
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260722_222828
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260722_222843
