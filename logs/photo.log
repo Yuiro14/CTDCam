@@ -56,3 +56,12 @@ Warning: ffmpeg capture failed at 20260722_222828
 Unrecognized option 'input_format'.
 Error splitting the argument list: Option not found
 Warning: ffmpeg capture failed at 20260722_222843
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260722_222858
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260722_222913
+Terminated: 15             sleep "$SLEEP_TIME"
+
+Stopping capture loop.

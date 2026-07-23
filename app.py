@@ -36,6 +36,16 @@ import signal
 import subprocess
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
 
+# ============================================================================
+# Which capture mode should start automatically when this app launches
+# (e.g. on boot, via systemd)? Options: "photo", "video", or None.
+#
+# Photo and video capture can't run at the same time (see start_process
+# below, which stops whichever one is running before starting the other),
+# so only one of them can be the default here.
+# ============================================================================
+AUTO_START_MODE = "video"  # or "photo" or None
+
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -61,7 +71,6 @@ DEFAULT_CONFIG = {
         "interval": 15,
         "warmup_frames": 5,
         "target_dir": "captures",
-        "auto_start": True,
     },
     "video": {
         "device": "/dev/video0",
@@ -71,12 +80,15 @@ DEFAULT_CONFIG = {
         "bitrate": "1.5M",
         "segment_minutes": 5,
         "target_dir": "video_captures",
-        "auto_start": True,
     },
 }
 
 # Holds the running Popen handle for each managed process (None if stopped)
 processes = {"photo": None, "video": None}
+
+# Photo and video capture use the same camera device and cannot run at the
+# same time. This maps each mode to "the other one".
+OTHER_MODE = {"photo": "video", "video": "photo"}
 
 
 # --- Config helpers -------------------------------------------------------
@@ -151,6 +163,11 @@ def build_env(name, config):
 def start_process(name, config):
     if is_running(name):
         return
+    # Photo and video share one camera and can't run at once -- stop
+    # whichever one is currently running before starting this one.
+    other = OTHER_MODE[name]
+    if is_running(other):
+        stop_process(other)
     log_path = LOG_PATHS[name]
     os.makedirs(LOG_DIR, exist_ok=True)
     rotate_log_if_large(log_path)
@@ -292,10 +309,8 @@ if __name__ == "__main__":
     os.makedirs(os.path.join(BASE_DIR, cfg["photo"]["target_dir"]), exist_ok=True)
     os.makedirs(os.path.join(BASE_DIR, cfg["video"]["target_dir"]), exist_ok=True)
     os.makedirs(LOG_DIR, exist_ok=True)
-    if cfg["photo"].get("auto_start"):
-        start_process("photo", cfg)
-    if cfg["video"].get("auto_start"):
-        start_process("video", cfg)
+    if AUTO_START_MODE in ("photo", "video"):
+        start_process(AUTO_START_MODE, cfg)
     try:
         app.run(host="0.0.0.0", port=5020, debug=False)
     finally:
