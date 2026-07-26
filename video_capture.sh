@@ -25,7 +25,7 @@ RESOLUTION="${RESOLUTION:-1280x720}"
 INPUT_FORMAT="${INPUT_FORMAT:-mjpeg}"
 FPS="${FPS:-15}"
 BITRATE="${BITRATE:-1.5M}"
-SEGMENT_SECONDS="${SEGMENT_SECONDS:-300}"   # length of each finalized chunk
+SEGMENT_SECONDS="${SEGMENT_SECONDS:-120}"   # length of each finalized chunk
 TARGET_DIR="${1:-${TARGET_DIR:-./video_captures}}"
 RETRY_DELAY="${RETRY_DELAY:-5}"             # seconds to wait before retrying after a failure
 

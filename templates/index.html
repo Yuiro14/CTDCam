@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Camera Dashboard</title>
+  <title>CTDCam Dashboard</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #222; }
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; color: #222; }
     h1 { font-size: 1.4rem; }
     h2 { font-size: 1.1rem; margin-top: 0; }
     section { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
@@ -17,17 +17,24 @@
     button:hover { background: #1d4ed8; }
     button.danger { background: #dc2626; }
     button.danger:hover { background: #b91c1c; }
-    input[type=text], input[type=number] { padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 160px; }
+    button.small { padding: 3px 8px; font-size: 0.8rem; }
+    input[type=text], input[type=number], select { padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 170px; }
     label { display: block; margin-top: 8px; font-size: 0.9rem; color: #555; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
     .btn-row { display: flex; gap: 8px; margin-top: 12px; }
-    ul { padding-left: 18px; max-height: 200px; overflow-y: auto; }
+    ul.file-list { list-style: none; padding-left: 0; max-height: 220px; overflow-y: auto; }
+    ul.file-list li { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid #f2f2f2; }
+    ul.file-list li a { flex-shrink: 0; }
     a { color: #2563eb; }
     fieldset { border: 1px solid #ccc; border-radius: 6px; margin-top: 8px; }
     pre.log { background: #111; color: #ddd; padding: 10px; border-radius: 6px; font-size: 0.78rem;
               max-height: 180px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
     .log-label { font-size: 0.85rem; color: #555; margin-top: 10px; margin-bottom: 4px; }
     .refresh-note { font-size: 0.8rem; color: #888; }
+    .hint { font-size: 0.8rem; color: #b45309; background: #fffbeb; padding: 6px 10px; border-radius: 6px; }
+    .banner { padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 0.9rem; }
+    .banner.success { background: #dcfce7; color: #166534; }
+    .banner.error { background: #fee2e2; color: #991b1b; }
   </style>
 </head>
 <body>
@@ -35,6 +42,10 @@
   <p class="refresh-note">Reload the page to refresh status and logs.</p>
   <p class="refresh-note">Photo and video capture share one camera and can't run at the same time —
     starting either one automatically stops the other.</p>
+
+  {% if message %}
+    <div class="banner {{ message.level }}">{{ message.text }}</div>
+  {% endif %}
 
   <!-- ================= PHOTO ================= -->
   <section>
@@ -55,6 +66,10 @@
       </form>
     </div>
 
+    {% if not photo_formats %}
+      <p class="hint">Camera formats not detected ({{ photo_formats_err }}) — enter resolution/format manually below.</p>
+    {% endif %}
+
     <fieldset>
       <legend>Settings (saving restarts the loop)</legend>
       <form action="{{ url_for('update_photo_settings') }}" method="post">
@@ -64,12 +79,24 @@
             <input id="p_device" name="device" type="text" value="{{ config.photo.device }}">
           </div>
           <div>
-            <label for="p_resolution">Resolution</label>
-            <input id="p_resolution" name="resolution" type="text" value="{{ config.photo.resolution }}">
+            <label for="p_input_format_select">Input format</label>
+            {% if photo_formats %}
+              <select id="p_input_format_select" name="input_format">
+                {% for fmt in photo_formats.keys() %}
+                  <option value="{{ fmt }}" {{ 'selected' if fmt == config.photo.input_format else '' }}>{{ fmt }}</option>
+                {% endfor %}
+              </select>
+            {% else %}
+              <input id="p_input_format_select" name="input_format" type="text" value="{{ config.photo.input_format }}">
+            {% endif %}
           </div>
           <div>
-            <label for="p_input_format">Input format</label>
-            <input id="p_input_format" name="input_format" type="text" value="{{ config.photo.input_format }}">
+            <label for="p_resolution_select">Resolution</label>
+            {% if photo_formats %}
+              <select id="p_resolution_select" name="resolution"></select>
+            {% else %}
+              <input id="p_resolution_select" name="resolution" type="text" value="{{ config.photo.resolution }}">
+            {% endif %}
           </div>
           <div>
             <label for="p_interval">Interval (s)</label>
@@ -105,8 +132,7 @@
     </div>
     <p style="font-size:0.85rem;color:#777;">
       Records continuously in {{ config.video.segment_minutes }}-minute segments, so a sudden
-      power loss only affects the segment currently being written -- earlier segments stay intact
-      and playable. If ffmpeg fails (e.g. camera not ready yet at boot) it retries automatically.
+      power loss only affects the segment currently being written. Retries automatically on failure.
     </p>
 
     <div class="btn-row">
@@ -118,31 +144,45 @@
       </form>
     </div>
 
+    {% if not video_formats %}
+      <p class="hint">Camera formats not detected ({{ video_formats_err }}) — enter format/resolution/fps manually below.</p>
+    {% endif %}
+
     <fieldset>
       <legend>Settings (saving restarts recording)</legend>
       <form action="{{ url_for('update_video_settings') }}" method="post">
-        <label>FPS preset</label>
-        <label style="display:inline;">
-          <input type="radio" name="fps" value="15" {{ 'checked' if config.video.fps|string == '15' else '' }}>
-          15 fps
-        </label>
-        <label style="display:inline; margin-left:12px;">
-          <input type="radio" name="fps" value="10" {{ 'checked' if config.video.fps|string == '10' else '' }}>
-          10 fps
-        </label>
-
-        <div class="form-grid" style="margin-top:8px;">
+        <div class="form-grid">
           <div>
             <label for="v_device">Device</label>
             <input id="v_device" name="device" type="text" value="{{ config.video.device }}">
           </div>
           <div>
-            <label for="v_resolution">Resolution</label>
-            <input id="v_resolution" name="resolution" type="text" value="{{ config.video.resolution }}">
+            <label for="v_input_format_select">Input format</label>
+            {% if video_formats %}
+              <select id="v_input_format_select" name="input_format">
+                {% for fmt in video_formats.keys() %}
+                  <option value="{{ fmt }}" {{ 'selected' if fmt == config.video.input_format else '' }}>{{ fmt }}</option>
+                {% endfor %}
+              </select>
+            {% else %}
+              <input id="v_input_format_select" name="input_format" type="text" value="{{ config.video.input_format }}">
+            {% endif %}
           </div>
           <div>
-            <label for="v_input_format">Input format</label>
-            <input id="v_input_format" name="input_format" type="text" value="{{ config.video.input_format }}">
+            <label for="v_resolution_select">Resolution</label>
+            {% if video_formats %}
+              <select id="v_resolution_select" name="resolution"></select>
+            {% else %}
+              <input id="v_resolution_select" name="resolution" type="text" value="{{ config.video.resolution }}">
+            {% endif %}
+          </div>
+          <div>
+            <label for="v_fps_select">FPS</label>
+            {% if video_formats %}
+              <select id="v_fps_select" name="fps"></select>
+            {% else %}
+              <input id="v_fps_select" name="fps" type="number" value="{{ config.video.fps }}">
+            {% endif %}
           </div>
           <div>
             <label for="v_bitrate">Bitrate</label>
@@ -167,31 +207,178 @@
     <pre class="log">{{ video_log }}</pre>
   </section>
 
-  <!-- ================= FILES ================= -->
+  <!-- ================= PHOTO FILES ================= -->
   <section>
     <h2>Photo Captures</h2>
     {% if photo_files %}
-      <ul>
-        {% for f in photo_files %}
-          <li><a href="{{ url_for('download_photo', filename=f) }}">{{ f }}</a></li>
-        {% endfor %}
-      </ul>
+      <form onsubmit="return confirmFormAction(event);">
+        <ul class="file-list">
+          {% for f in photo_files %}
+            <li>
+              <input type="checkbox" name="selected" value="{{ f }}">
+              <a href="{{ url_for('download_photo', filename=f) }}">{{ f }}</a>
+              <button type="submit" formaction="{{ url_for('delete_photo') }}" formmethod="post"
+                      formnovalidate name="filename" value="{{ f }}" class="danger small"
+                      style="margin-left:auto;" data-action="delete-one" data-fname="{{ f }}">Delete</button>
+            </li>
+          {% endfor %}
+        </ul>
+        <div class="btn-row">
+          <button type="submit" formaction="{{ url_for('delete_selected_photos') }}" formmethod="post"
+                  formnovalidate class="danger" data-action="delete-selected">Delete Selected</button>
+          <button type="submit" formaction="{{ url_for('download_selected_photos') }}" formmethod="post"
+                  formnovalidate data-action="download-selected">Download Selected</button>
+        </div>
+      </form>
     {% else %}
       <p>No photo captures yet.</p>
     {% endif %}
   </section>
 
+  <!-- ================= VIDEO FILES (multi-select: delete, download, combine) ================= -->
   <section>
     <h2>Video Captures</h2>
+    <p style="font-size:0.85rem;color:#777;">
+      Select two or more segments to combine them (oldest → newest, by timestamp) into a single
+      file under Combined Videos. Avoid selecting/deleting the segment currently being recorded.
+    </p>
     {% if video_files %}
-      <ul>
-        {% for f in video_files %}
-          <li><a href="{{ url_for('download_video', filename=f) }}">{{ f }}</a></li>
-        {% endfor %}
-      </ul>
+      <form onsubmit="return confirmFormAction(event);">
+        <ul class="file-list">
+          {% for f in video_files %}
+            <li>
+              <input type="checkbox" name="selected" value="{{ f }}">
+              <a href="{{ url_for('download_video', filename=f) }}">{{ f }}</a>
+              <button type="submit" formaction="{{ url_for('delete_video') }}" formmethod="post"
+                      formnovalidate name="filename" value="{{ f }}" class="danger small"
+                      style="margin-left:auto;" data-action="delete-one" data-fname="{{ f }}">Delete</button>
+            </li>
+          {% endfor %}
+        </ul>
+        <div class="btn-row">
+          <button type="submit" formaction="{{ url_for('delete_selected_videos') }}" formmethod="post"
+                  formnovalidate class="danger" data-action="delete-selected">Delete Selected</button>
+          <button type="submit" formaction="{{ url_for('download_selected_videos') }}" formmethod="post"
+                  formnovalidate data-action="download-selected">Download Selected</button>
+          <button type="submit" formaction="{{ url_for('combine_videos') }}" formmethod="post"
+                  formnovalidate data-action="combine">Combine Selected</button>
+        </div>
+      </form>
     {% else %}
       <p>No video captures yet.</p>
     {% endif %}
   </section>
+
+  <!-- ================= COMBINED VIDEOS ================= -->
+  <section>
+    <h2>Combined Videos</h2>
+    {% if combined_files %}
+      <form onsubmit="return confirmFormAction(event);">
+        <ul class="file-list">
+          {% for f in combined_files %}
+            <li>
+              <input type="checkbox" name="selected" value="{{ f }}">
+              <a href="{{ url_for('download_combined', filename=f) }}">{{ f }}</a>
+              <button type="submit" formaction="{{ url_for('delete_combined') }}" formmethod="post"
+                      formnovalidate name="filename" value="{{ f }}" class="danger small"
+                      style="margin-left:auto;" data-action="delete-one" data-fname="{{ f }}">Delete</button>
+            </li>
+          {% endfor %}
+        </ul>
+        <div class="btn-row">
+          <button type="submit" formaction="{{ url_for('delete_selected_combined') }}" formmethod="post"
+                  formnovalidate class="danger" data-action="delete-selected">Delete Selected</button>
+          <button type="submit" formaction="{{ url_for('download_selected_combined') }}" formmethod="post"
+                  formnovalidate data-action="download-selected">Download Selected</button>
+        </div>
+      </form>
+    {% else %}
+      <p>No combined videos yet.</p>
+    {% endif %}
+  </section>
+
+  <script>
+    const PHOTO_FORMATS = {{ photo_formats|tojson }};
+    const VIDEO_FORMATS = {{ video_formats|tojson }};
+
+    // Single confirm/validation handler shared by every file-list form.
+    // Uses event.submitter to know which specific button triggered the
+    // submit, so (for example) clicking one row's "Delete" no longer pops
+    // up the "Combine selected videos?" message meant for a different button.
+    function confirmFormAction(event) {
+      const btn = event.submitter;
+      if (!btn) return true;
+      const action = btn.dataset.action;
+      const form = btn.form;
+      const checkedCount = form ? form.querySelectorAll('input[name="selected"]:checked').length : 0;
+
+      if (action === "delete-one") {
+        return confirm(`Delete ${btn.dataset.fname}?`);
+      }
+      if (action === "delete-selected") {
+        if (checkedCount === 0) { alert("Select at least one file first."); return false; }
+        return confirm(`Delete ${checkedCount} selected file(s)? This cannot be undone.`);
+      }
+      if (action === "download-selected") {
+        if (checkedCount === 0) { alert("Select at least one file first."); return false; }
+        return true;
+      }
+      if (action === "combine") {
+        if (checkedCount < 2) { alert("Select at least 2 videos to combine."); return false; }
+        return confirm("Combine the selected videos, oldest to newest?");
+      }
+      return true;
+    }
+
+    function populateSelect(select, options, preferredValue) {
+      if (!select) return;
+      select.innerHTML = "";
+      options.forEach(opt => {
+        const o = document.createElement("option");
+        o.value = opt;
+        o.textContent = opt;
+        select.appendChild(o);
+      });
+      if (preferredValue !== undefined && options.map(String).includes(String(preferredValue))) {
+        select.value = String(preferredValue);
+      } else if (options.length) {
+        select.value = String(options[0]);
+      }
+    }
+
+    function initCascading(formatsObj, formatSelectId, resolutionSelectId, fpsSelectId,
+                            initialFormat, initialResolution, initialFps) {
+      const formatSelect = document.getElementById(formatSelectId);
+      const resolutionSelect = document.getElementById(resolutionSelectId);
+      const fpsSelect = fpsSelectId ? document.getElementById(fpsSelectId) : null;
+      if (!formatSelect || formatSelect.tagName !== "SELECT") return; // manual-entry fallback mode
+
+      function onFormatChange(preferRes) {
+        const fmt = formatSelect.value;
+        const resolutions = Object.keys(formatsObj[fmt] || {});
+        populateSelect(resolutionSelect, resolutions, preferRes);
+        onResolutionChange(preferRes === initialResolution ? initialFps : undefined);
+      }
+      function onResolutionChange(preferFps) {
+        if (!fpsSelect) return;
+        const fmt = formatSelect.value;
+        const res = resolutionSelect.value;
+        const fpsList = (formatsObj[fmt] && formatsObj[fmt][res]) || [];
+        populateSelect(fpsSelect, fpsList, preferFps);
+      }
+
+      formatSelect.addEventListener("change", () => onFormatChange());
+      resolutionSelect.addEventListener("change", () => onResolutionChange());
+
+      onFormatChange(initialResolution);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initCascading(PHOTO_FORMATS, "p_input_format_select", "p_resolution_select", null,
+                    "{{ config.photo.input_format }}", "{{ config.photo.resolution }}", null);
+      initCascading(VIDEO_FORMATS, "v_input_format_select", "v_resolution_select", "v_fps_select",
+                    "{{ config.video.input_format }}", "{{ config.video.resolution }}", "{{ config.video.fps }}");
+    });
+  </script>
 </body>
 </html>

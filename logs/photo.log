@@ -65,3 +65,351 @@ Warning: ffmpeg capture failed at 20260722_222913
 Terminated: 15             sleep "$SLEEP_TIME"
 
 Stopping capture loop.
+
+--- starting photo process ---
+
+--- starting photo process ---
+Capture loop starting.
+  Device:      /dev/video0
+  Resolution:  1920x1080
+  Interval:    15s
+  Warmup:      5 frames
+  Target dir:  /Users/yuiro_14/Projects/Code/CTDCam/captures
+Press Ctrl+C to stop.
+
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143335
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143350
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143405
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143420
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143435
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143450
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143505
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143520
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143535
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143550
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143605
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143620
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143635
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143650
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143705
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143720
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143735
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143750
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143805
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143820
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143835
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143850
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143905
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143920
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143935
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_143950
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144005
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144020
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144035
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144050
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144105
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144120
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144135
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144150
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144205
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144221
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144236
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144251
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144306
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144321
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144336
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144351
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144406
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144422
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144437
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144452
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144507
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144522
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144537
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144552
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144607
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144622
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144637
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144652
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144707
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144722
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144737
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144752
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144807
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144822
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144837
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144852
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144907
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144922
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144937
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_144952
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145007
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145022
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145037
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145052
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145107
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145122
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145138
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145153
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145208
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145223
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145238
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145253
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145308
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145323
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145338
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145354
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145408
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145423
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145438
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145453
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145508
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145523
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145538
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145554
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145609
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145624
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145639
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145654
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145709
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145724
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145739
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145754
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145809
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145824
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145839
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145854
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145909
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145924
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145939
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_145954
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_150009
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_150024
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_150039
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_150054
+Unrecognized option 'input_format'.
+Error splitting the argument list: Option not found
+Warning: ffmpeg capture failed at 20260724_150109
+Terminated: 15             sleep "$SLEEP_TIME"
+
+Stopping capture loop.
