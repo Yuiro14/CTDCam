@@ -65,10 +65,20 @@ If video is stopped before the segment is finished, that segment will be corrupt
 For photos, the purpose of the warm-up frames is to let the camera auto-adjust brightness, contrast, and other important settings on its own to get the ideal image before saving a final picture.
 
 ### Extra Information:
-The Pi hosts an SSH and an FTP server.
-They both use the same authentication with the login for the user 'aomlphod', password: 'liveleaks'
-This is the same user that runs the CTDCam script and the script is housed in aomlphod's home directory.
-It has full sudoer's permissions.
+The Pi's operating system is Dietpi.
+THe Pi has 3 Users.
+
+"root" with the password "brute"
+
+"dietpi" with the password "brute"
+
+"aomlphod" with the password "liveleaks"
+
+Aomlphod is the same user that runs the CTDCam script and the script is housed in aomlphod's home directory.
+Aomlphod has full sudoer's permissions.
+
+The Pi hosts an SSH and an FTP server using vsftpd.
+They both use the same authentication with the login for the user "aomlphod".
 
 ## CTD Camera Setup:
 
