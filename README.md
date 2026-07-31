@@ -65,7 +65,7 @@ For photos, the purpose of the warm-up frames is to let the camera auto-adjust b
 
 ### Extra Information:
 The Pi's operating system is Dietpi.
-THe Pi has 3 Users.
+The Pi has 3 Users with these passwords as default:
 
 "root" with the password "brute"
 
@@ -73,7 +73,7 @@ THe Pi has 3 Users.
 
 "aomlphod" with the password "liveleaks"
 
-Aomlphod is the same user that runs the CTDCam script and the script is housed in aomlphod's home directory.
+Aomlphod is the user that runs the CTDCam script and the script is housed in aomlphod's home directory.
 Aomlphod has full sudoer's permissions.
 
 The Pi hosts an SSH and an FTP server using vsftpd.
