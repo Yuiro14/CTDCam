@@ -1,7 +1,65 @@
-# CTDCam
+# CTDCamera
+This project uitizes a Raspberry Pi 02W to record either photos or video from a connected webcam. 
+This is intended to be mounted on a CTD.
+
+# CTD Camera Usage
+walking through every section on the dashboard (`http://<device>:5020`),
+top to bottom.
+ 
+**Default Capture Mode** — sets which mode (Photo, Video, or neither)
+starts automatically when the app launches, e.g. after a reboot. Saving
+this also switches to that mode immediately, not just on next boot.
+ 
+**System Date & Time** — sets the Pi's system clock. Useful in the field
+with no internet/NTP access to keep timestamps accurate. "Use Browser's
+Time" fills the field with your phone/laptop's own clock as a convenient
+source of truth; "Set System Time" applies it.
+ 
+**Photo Capture Loop** — status (running/stopped), Start/Stop buttons,
+and a settings form (device, input format, resolution, capture interval,
+warmup frame count, output folder). Saving settings restarts the loop
+with the new values. Input format and resolution become dropdowns
+populated from what the camera actually supports, once one is connected
+and detected (`v4l2-ctl`) — otherwise they're plain text fields. A log
+panel below shows the last ~30 lines of that loop's output, including
+any ffmpeg errors.
+ 
+**Video Capture** — same layout as Photo, plus an FPS dropdown and a live
+countdown showing time remaining until the current segment is finalized.
+Recording is continuous, split into segments (length configurable in
+seconds) so a sudden power loss only risks the segment being written at
+that moment, not the whole recording session.
+ 
+**Photo Captures / Video Captures / Combined Videos** — each is a
+checkbox-selectable file list with:
+- **Delete** (per row) — removes that one file, with a confirmation prompt.
+- **Delete Selected** — removes every checked file.
+- **Download Selected** — zips every checked file into one download.
+- **Delete All** — clears the whole section.
+- **Combine Selected** (Video Captures only) — joins 2+ checked segments,
+  oldest to newest by timestamp, into one file placed under Combined
+  Videos. Tries a fast lossless copy first, falling back to re-encoding
+  if the segments don't share compatible settings.
+In Video Captures, the segment currently being recorded is always hidden
+from this list (and can't be selected/deleted/downloaded/combined) since
+it isn't a complete, playable file yet — it reappears once finalized.
+ 
+Every delete/combine/download action shows a green (success) or red
+(error) banner at the top of the page after it completes.
+
+### Important Notes:
+The time/date should be set when CTDCam is started to ensure correct dates and times for recorded segments.
+
+The higher resolution you use, and in the case of video: higher frame rates, will draw more power and processing power from the Pi. To prevent drawing too much current from the FISH, I would recommend a Max frame rate and resolution combination for video to be 15 FPS and 1280 x 720. Photo mode draws less power from the start and can capture at higher resolutions. 
+
+If video is stopped before the segment is finished, that segment will be corrupted. So my recommendation is to let the timer finish for the segment and then stop the video.
+
+For photos, the purpose of the warm-up frames is to let the camera auto-adjust brightness, contrast, and other important settings on its own to get the ideal image before saving a final picture.
 
 
-## Install dependencies
+## CTD Camera Setup:
+
+### Install dependencies
 
 ```bash
 sudo apt install -y ffmpeg v4l-utils python3-pip python3-venv git
@@ -10,30 +68,20 @@ pip install flask --break-system-packages
 
 - `ffmpeg` — does the actual photo/video capture
 - `v4l-utils` — provides `v4l2-ctl`, which the app uses to detect the
-  camera's supported resolutions/formats for the dropdown menus (optional
-  but recommended; the app falls back to manual text entry without it)
+  camera's supported resolutions/formats for the dropdown menus.
 - `python3-venv` / `git` — convenience, not strictly required
 
-## 4. Get the CTDCam files onto the device
+### Get the CTDCam files onto the device
 
-Copy the whole `CTDCam` folder (containing `app.py`, `templates/`,
-`capture_loop.sh`, `video_capture.sh`) to the Pi. From your own computer:
 ```bash
-scp -r CTDCam <username>@ctdcam.local:/home/<username>/
+git clone 'https://github.com/Yuiro14/CTDCam' ~/CTDCam
 ```
-Or if it's in a git repo:
+Make the scripts executable:
 ```bash
-git clone <your-repo-url> /home/<username>/CTDCam
-```
-
-Then on the Pi, check line endings (see below) and make the scripts
-executable:
-```bash
-cd ~/CTDCam
 chmod +x capture_loop.sh video_capture.sh
 ```
 
-### Fix line endings (if transferred from Windows)
+#### Fix line endings
 
 Some editors or git configurations on Windows save files with `\r\n`
 (CRLF) line endings instead of Unix `\n`. Bash treats the stray `\r` as
@@ -44,21 +92,12 @@ Check:
 file *.sh app.py
 ```
 If it says `with CRLF line terminators`, fix it:
-```bash
-sudo apt install -y dos2unix
-dos2unix *.sh app.py
-```
-or without installing anything:
+
 ```bash
 sed -i 's/\r$//' *.sh app.py
 ```
-If transferring via git from Windows, add a `.gitattributes` file with:
-```
-*.sh text eol=lf
-app.py text eol=lf
-```
 
-## 6. Camera permissions
+### Fix Camera permissions
 
 ```bash
 ls -l /dev/video0
@@ -77,7 +116,7 @@ sudo udevadm control --reload
 sudo udevadm trigger
 ```
 
-## 7. System date/time permissions
+### Fix System date/time permissions
 
 The app's "System Date & Time" page lets you set the Pi's clock directly. 
 It runs `sudo date -s "..."`, which needs explicit permission.
@@ -95,7 +134,7 @@ sudo -u <username> sudo date -s "2026-01-01 00:00:00"
 If this prompts for a password or fails, confirm the username matches
 and run `sudo visudo -c` to check for syntax errors.
 
-## 8. Create the systemd service
+### Create the systemd service
 
 Save as `/etc/systemd/system/CTDCam.service`:
 
@@ -116,7 +155,7 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-## 9. Enable and start it
+### Enable and start it
 
 ```bash
 sudo systemctl daemon-reload
@@ -124,10 +163,12 @@ sudo systemctl enable CTDCam.service
 sudo systemctl start CTDCam.service
 ```
 
-The dashboard listens on port **5020**:
+CTDCam's default ip is **192.168.50.1** 
+The dashboard listens on port **5020**
+So you can use **http://192.168.50.1:5020/** to access it by default.
 
 
-## 10. Useful commands
+### Useful commands
 
 ```bash
 sudo systemctl status CTDCam
@@ -139,36 +180,4 @@ The photo/video *capture* logs (ffmpeg errors, retries) are separate —
 those show in the web UI, stored at `logs/photo.log` and `logs/video.log`.
 
 ---
-- **Photos**: each capture writes to a temp filename, renamed into place
-  only after a successful capture.
-- **Video**: recorded in short segments (adjustable in the UI). Only the
-  segment being written when power cuts out is at risk.
-- **Both scripts retry indefinitely** on failure rather than exiting.
-- **`Restart=always`** covers the Flask app itself crashing.
-- **Mutual exclusion**: photo and video capture share one camera and can
-  never run at the same time.
-
-## Combining videos
-
-Selecting 2+ segments and hitting "Combine Selected" sorts them oldest to
-newest by the timestamp in their filename (falling back to file
-modification time if that's missing) and joins them into
-`combined_videos/`. It tries a fast lossless stream copy first; if the
-segments have mismatched parameters (e.g. you changed resolution/bitrate
-partway through), it automatically re-encodes instead. Original segments
-are left untouched.
-
-## The currently-recording segment is hidden
-
-While video capture is running, the segment ffmpeg is actively writing
-right now is automatically hidden from the Video Captures list (and can't
-be selected, downloaded, deleted, or combined) — it isn't a complete,
-playable file yet. It reappears once ffmpeg finalizes it and moves to the
-next segment. The page shows a live countdown to that point.
-
-## Delete All
-
-Each of Photo Captures, Video Captures, and Combined Videos has its own
-"Delete All" button. For Video Captures, this only deletes finalized
-segments — the currently-recording one (if any) is always kept safe.
 
