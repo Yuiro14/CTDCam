@@ -1,13 +1,12 @@
-# CTDCamera
+# CTD Camera
 
 ## Breif
 This project uitizes a Raspberry Pi 02W to record either photos or video from a connected webcam. 
-This is intended to be mounted on the CTD.
+This was intended to be mounted on one of many CTDs run by NOAA/AOML.
 
 The goal of this project was to develop an underwater camera using off the shelf components including a Raspberry Pi and a disassembled webcam to reduce cost.
 
-This cheap power efficient camera system will be housed in a reused pressure chamber, originally designed to be a photo flash, with modifications to the housing to allow it to connect to the FISH.
-
+This cheap power efficient camera system will be housed in a reused pressure chamber, originally designed to be a photo flash, with modifications to the housing to allow it to connect to the FISH (The power supply/controller for the CTD).
 The camera system’s goal is to capture either video/photos of the water (and occasionally seafloor) as the CTD descends and acends.
 
 # CTD Camera Usage
