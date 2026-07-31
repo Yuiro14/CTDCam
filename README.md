@@ -1,6 +1,6 @@
 # CTD Camera
 
-## Breif
+## Brief
 This project uitizes a Raspberry Pi 02W to record either photos or video from a connected webcam. 
 This was intended to be mounted on one of many CTDs run by NOAA/AOML.
 
