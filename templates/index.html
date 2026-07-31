@@ -38,14 +38,51 @@
   </style>
 </head>
 <body>
-  <h1>📷 CTDCam Dashboard</h1>
+  <h1>CTDCam Dashboard</h1>
   <p class="refresh-note">Reload the page to refresh status and logs.</p>
-  <p class="refresh-note">Photo and video capture share one camera and can't run at the same time —
+  <p class="refresh-note">Photo and video capture can't run at the same time —
     starting either one automatically stops the other.</p>
 
   {% if message %}
     <div class="banner {{ message.level }}">{{ message.text }}</div>
   {% endif %}
+
+  <!-- ================= DEFAULT CAPTURE MODE ================= -->
+  <section>
+    <h2>Default Capture Mode</h2>
+    <p style="font-size:0.85rem;color:#777;">
+      Which mode starts automatically when CTDCam launches (e.g. after a reboot). Saving this
+      also switches to that mode right now.
+    </p>
+    <form action="{{ url_for('update_default_mode') }}" method="post" class="btn-row" style="flex-wrap:wrap;">
+      <label style="display:inline;margin:0;">
+        <input type="radio" name="default_mode" value="photo" {{ 'checked' if config.default_capture_mode == 'photo' else '' }}>
+        Photo
+      </label>
+      <label style="display:inline;margin:0;">
+        <input type="radio" name="default_mode" value="video" {{ 'checked' if config.default_capture_mode == 'video' else '' }}>
+        Video
+      </label>
+      <label style="display:inline;margin:0;">
+        <input type="radio" name="default_mode" value="none" {{ 'checked' if config.default_capture_mode == 'none' else '' }}>
+        None
+      </label>
+      <button type="submit">Save &amp; Apply</button>
+    </form>
+  </section>
+
+  <!-- ================= SYSTEM DATE & TIME ================= -->
+  <section>
+    <h2>System Date &amp; Time</h2>
+    <p style="font-size:0.85rem;color:#777;">
+      Set's the system clock. "Use Browser's Time" pulls the computer's time.
+    </p>
+    <form action="{{ url_for('set_datetime') }}" method="post" class="btn-row" style="flex-wrap:wrap;">
+      <input type="datetime-local" name="datetime" value="{{ server_now }}" required>
+      <button type="button" onclick="useBrowserTime()">Use Browser's Time</button>
+      <button type="submit">Set System Time</button>
+    </form>
+  </section>
 
   <!-- ================= PHOTO ================= -->
   <section>
@@ -130,8 +167,14 @@
         {{ 'RUNNING' if video_running else 'STOPPED' }}
       </span>
     </div>
+    {% if video_running and video_remaining_seconds is not none %}
+      <div class="var-row">
+        <span>Time until current segment finalizes</span>
+        <span id="videoTimerValue" class="status">--:--</span>
+      </div>
+    {% endif %}
     <p style="font-size:0.85rem;color:#777;">
-      Records continuously in {{ config.video.segment_minutes }}-minute segments, so a sudden
+      Records continuously in {{ config.video.segment_seconds }}-second segments, so a sudden
       power loss only affects the segment currently being written. Retries automatically on failure.
     </p>
 
@@ -189,8 +232,8 @@
             <input id="v_bitrate" name="bitrate" type="text" value="{{ config.video.bitrate }}">
           </div>
           <div>
-            <label for="v_segment_minutes">Segment length (min)</label>
-            <input id="v_segment_minutes" name="segment_minutes" type="number" value="{{ config.video.segment_minutes }}">
+            <label for="v_segment_seconds">Segment length (seconds)</label>
+            <input id="v_segment_seconds" name="segment_seconds" type="number" value="{{ config.video.segment_seconds }}">
           </div>
           <div>
             <label for="v_target_dir">Target dir</label>
@@ -230,6 +273,10 @@
                   formnovalidate data-action="download-selected">Download Selected</button>
         </div>
       </form>
+      <form action="{{ url_for('delete_all_photos') }}" method="post"
+            onsubmit="return confirm('Delete ALL photo captures? This cannot be undone.');" class="btn-row">
+        <button type="submit" class="danger">Delete All</button>
+      </form>
     {% else %}
       <p>No photo captures yet.</p>
     {% endif %}
@@ -240,7 +287,10 @@
     <h2>Video Captures</h2>
     <p style="font-size:0.85rem;color:#777;">
       Select two or more segments to combine them (oldest → newest, by timestamp) into a single
-      file under Combined Videos. Avoid selecting/deleting the segment currently being recorded.
+      file under Combined Videos.
+      {% if active_video_file %}
+        The segment currently being recorded ({{ active_video_file }}) is hidden here until it's finalized.
+      {% endif %}
     </p>
     {% if video_files %}
       <form onsubmit="return confirmFormAction(event);">
@@ -263,6 +313,10 @@
           <button type="submit" formaction="{{ url_for('combine_videos') }}" formmethod="post"
                   formnovalidate data-action="combine">Combine Selected</button>
         </div>
+      </form>
+      <form action="{{ url_for('delete_all_videos') }}" method="post"
+            onsubmit="return confirm('Delete ALL completed video segments? This cannot be undone.');" class="btn-row">
+        <button type="submit" class="danger">Delete All</button>
       </form>
     {% else %}
       <p>No video captures yet.</p>
@@ -291,6 +345,10 @@
           <button type="submit" formaction="{{ url_for('download_selected_combined') }}" formmethod="post"
                   formnovalidate data-action="download-selected">Download Selected</button>
         </div>
+      </form>
+      <form action="{{ url_for('delete_all_combined') }}" method="post"
+            onsubmit="return confirm('Delete ALL combined videos? This cannot be undone.');" class="btn-row">
+        <button type="submit" class="danger">Delete All</button>
       </form>
     {% else %}
       <p>No combined videos yet.</p>
@@ -373,11 +431,49 @@
       onFormatChange(initialResolution);
     }
 
+    // Fills the "System Date & Time" input with the browsing device's own
+    // clock -- handy when the Pi itself has no reliable clock/NTP access.
+    function useBrowserTime() {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      const val = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      const input = document.querySelector('input[name="datetime"]');
+      if (input) input.value = val;
+    }
+
+    // Live countdown to the current video segment's expected finalize time.
+    // The server computes the starting "remaining" value (based on when the
+    // process launched); from there this just ticks down client-side once a
+    // second and loops back to the full segment length, since recording is
+    // continuous and a new segment starts right after the old one closes.
+    function startVideoTimer(initialRemaining, segmentSeconds) {
+      const el = document.getElementById("videoTimerValue");
+      if (!el) return;
+      let remaining = Math.max(0, Math.floor(initialRemaining));
+
+      function render() {
+        const m = Math.floor(remaining / 60).toString().padStart(2, "0");
+        const s = Math.floor(remaining % 60).toString().padStart(2, "0");
+        el.textContent = `${m}:${s}`;
+      }
+
+      render();
+      setInterval(() => {
+        remaining -= 1;
+        if (remaining < 0) remaining = segmentSeconds;
+        render();
+      }, 1000);
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       initCascading(PHOTO_FORMATS, "p_input_format_select", "p_resolution_select", null,
                     "{{ config.photo.input_format }}", "{{ config.photo.resolution }}", null);
       initCascading(VIDEO_FORMATS, "v_input_format_select", "v_resolution_select", "v_fps_select",
                     "{{ config.video.input_format }}", "{{ config.video.resolution }}", "{{ config.video.fps }}");
+
+      {% if video_running and video_remaining_seconds is not none %}
+        startVideoTimer({{ video_remaining_seconds }}, {{ config.video.segment_seconds }});
+      {% endif %}
     });
   </script>
 </body>

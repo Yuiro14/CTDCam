@@ -17,13 +17,16 @@ Also handles:
   - querying the camera (via v4l2-ctl) for the pixel formats/resolutions/
     framerates it actually supports, so the settings forms can offer
     dropdowns instead of free-text fields
-  - deleting individual captured files
+  - deleting individual captured files, bulk delete/download, delete-all
   - combining a multi-selected set of video segments (oldest to newest,
     by timestamp) into one file in a separate "combined" section
+  - which capture mode starts automatically on launch is configurable
+    from the web page itself (see the Default Capture Mode section),
+    not hardcoded in this file
 
 Run with:
     python app.py
-Then visit http://<device-ip>:5000
+Then visit http://<device-ip>:5020
 """
 
 import io
@@ -32,19 +35,12 @@ import os
 import re
 import signal
 import subprocess
+import time
 import zipfile
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, send_file
 
-# ============================================================================
-# Which capture mode should start automatically when this app launches
-# (e.g. on boot, via systemd)? Options: "photo", "video", or None.
-#
-# Photo and video capture can't run at the same time (see start_process
-# below, which stops whichever one is running before starting the other),
-# so only one of them can be the default here.
-# ============================================================================
-AUTO_START_MODE = "photo"
+WEB_PORT = 5020
 
 app = Flask(__name__)
 
@@ -65,6 +61,10 @@ LOG_KEEP_BYTES = 256 * 1024       # keep the last 256KB when rotating
 LOG_TAIL_LINES = 30               # lines shown in the UI
 
 DEFAULT_CONFIG = {
+    # Which mode auto-starts when the app launches (e.g. on boot). Editable
+    # from the web page's "Default Capture Mode" section -- "photo",
+    # "video", or "none".
+    "default_capture_mode": "photo",
     "photo": {
         "device": "/dev/video0",
         "resolution": "1920x1080",
@@ -79,13 +79,17 @@ DEFAULT_CONFIG = {
         "input_format": "mjpeg",
         "fps": "15",
         "bitrate": "1.5M",
-        "segment_minutes": 5,
+        "segment_seconds": 300,   # length of each finalized video chunk, in seconds
         "target_dir": "video_captures",
     },
 }
 
 # Holds the running Popen handle for each managed process (None if stopped)
 processes = {"photo": None, "video": None}
+
+# Holds the epoch time each process was last (re)started, so the UI can show
+# a live countdown to the current video segment's expected finalize time.
+process_started_at = {"photo": None, "video": None}
 
 # Photo and video capture use the same camera device and cannot run at the
 # same time. This maps each mode to "the other one".
@@ -102,10 +106,13 @@ def load_config():
         save_config(DEFAULT_CONFIG)
     with open(CONFIG_PATH, "r") as f:
         data = json.load(f)
-    for section, defaults in DEFAULT_CONFIG.items():
-        data.setdefault(section, {})
-        for k, v in defaults.items():
-            data[section].setdefault(k, v)
+    for key, defaults in DEFAULT_CONFIG.items():
+        if isinstance(defaults, dict):
+            data.setdefault(key, {})
+            for k, v in defaults.items():
+                data[key].setdefault(k, v)
+        else:
+            data.setdefault(key, defaults)
     return data
 
 
@@ -159,7 +166,7 @@ def build_env(name, config):
             "INPUT_FORMAT": v["input_format"],
             "FPS": str(v["fps"]),
             "BITRATE": v["bitrate"],
-            "SEGMENT_SECONDS": str(int(v["segment_minutes"]) * 60),
+            "SEGMENT_SECONDS": str(int(v["segment_seconds"])),
             "TARGET_DIR": os.path.join(BASE_DIR, v["target_dir"]),
         })
     return env
@@ -189,6 +196,7 @@ def start_process(name, config):
             start_new_session=True,   # own process group -> clean group signaling
         )
     processes[name] = proc
+    process_started_at[name] = time.time()
 
 
 def stop_process(name):
@@ -202,6 +210,7 @@ def stop_process(name):
         except ProcessLookupError:
             pass
     processes[name] = None
+    process_started_at[name] = None
 
 
 def restart_process(name, config):
@@ -284,6 +293,23 @@ def get_camera_formats(device, timeout=4):
 
 
 # --- File helpers (delete / combine) ----------------------------------------
+def get_active_video_file(directory):
+    """Returns the filename of the video segment currently being written
+    (the newest file in the directory while the video loop is running), or
+    None if nothing is actively recording right now.
+
+    Used to hide the in-progress segment from the downloads list (it's not
+    a valid/complete mp4 yet) and to protect it from being deleted,
+    downloaded, or combined by accident while still being written.
+    """
+    if not is_running("video") or not os.path.isdir(directory):
+        return None
+    files = os.listdir(directory)
+    if not files:
+        return None
+    return max(files, key=lambda f: os.path.getmtime(os.path.join(directory, f)))
+
+
 def safe_delete(directory, filename):
     """Deletes filename from directory, refusing to follow '..' or absolute
     paths outside of it."""
@@ -350,11 +376,29 @@ def index():
     photo_dir = os.path.join(BASE_DIR, config["photo"]["target_dir"])
     video_dir = os.path.join(BASE_DIR, config["video"]["target_dir"])
     photo_files = sorted(os.listdir(photo_dir))[-50:] if os.path.isdir(photo_dir) else []
-    video_files = sorted(os.listdir(video_dir))[-50:] if os.path.isdir(video_dir) else []
+
+    # Hide the segment currently being written -- it isn't a complete,
+    # playable mp4 yet, so don't let it show up (and get accidentally
+    # downloaded/deleted/combined) until ffmpeg has moved on to the next one.
+    active_video_file = get_active_video_file(video_dir)
+    video_files = (
+        sorted(f for f in os.listdir(video_dir) if f != active_video_file)[-50:]
+        if os.path.isdir(video_dir) else []
+    )
+
     combined_files = sorted(os.listdir(COMBINED_DIR))[-50:] if os.path.isdir(COMBINED_DIR) else []
 
     photo_formats, photo_formats_err = get_camera_formats(config["photo"]["device"])
     video_formats, video_formats_err = get_camera_formats(config["video"]["device"])
+
+    # Countdown to the current video segment's expected finalize time, for
+    # the live timer on the page. Approximate: assumes ffmpeg started
+    # segmenting right when the process launched.
+    video_remaining_seconds = None
+    if is_running("video") and process_started_at["video"] is not None:
+        seg_len = max(1, int(config["video"]["segment_seconds"]))
+        elapsed = time.time() - process_started_at["video"]
+        video_remaining_seconds = seg_len - (elapsed % seg_len)
 
     message = last_message
     last_message = None
@@ -369,12 +413,63 @@ def index():
         photo_files=photo_files,
         video_files=video_files,
         combined_files=combined_files,
+        active_video_file=active_video_file,
+        video_remaining_seconds=video_remaining_seconds,
         photo_formats=photo_formats,
         photo_formats_err=photo_formats_err,
         video_formats=video_formats,
         video_formats_err=video_formats_err,
         message=message,
+        server_now=datetime.now().strftime("%Y-%m-%dT%H:%M"),
     )
+
+
+@app.route("/settings/default_mode", methods=["POST"])
+def update_default_mode():
+    global last_message
+    config = load_config()
+    mode = request.form.get("default_mode", "none")
+    if mode not in ("photo", "video", "none"):
+        mode = "none"
+    config["default_capture_mode"] = mode
+    save_config(config)
+    if mode in ("photo", "video"):
+        start_process(mode, config)
+    else:
+        stop_process("photo")
+        stop_process("video")
+    last_message = {
+        "level": "success",
+        "text": f"Default capture mode set to '{mode}' (applies now, and on next launch/reboot).",
+    }
+    return redirect(url_for("index"))
+
+
+@app.route("/system/set_datetime", methods=["POST"])
+def set_datetime():
+    global last_message
+    dt_str = request.form.get("datetime", "")
+    try:
+        parsed = datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
+    except ValueError:
+        last_message = {"level": "error", "text": "Invalid date/time provided."}
+        return redirect(url_for("index"))
+
+    formatted = parsed.strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        result = subprocess.run(
+            ["sudo", "date", "-s", formatted], capture_output=True, text=True, timeout=10
+        )
+        if result.returncode == 0:
+            last_message = {"level": "success", "text": f"System time set to {formatted}."}
+        else:
+            err = (result.stderr or "unknown error").strip()[:200]
+            last_message = {"level": "error", "text": f"Failed to set system time: {err}"}
+    except FileNotFoundError:
+        last_message = {"level": "error", "text": "'date' command not found."}
+    except subprocess.TimeoutExpired:
+        last_message = {"level": "error", "text": "Timed out setting system time."}
+    return redirect(url_for("index"))
 
 
 @app.route("/photo/settings", methods=["POST"])
@@ -449,6 +544,20 @@ def download_selected_photos():
     return response if response is not None else redirect(url_for("index"))
 
 
+@app.route("/photo/delete_all", methods=["POST"])
+def delete_all_photos():
+    global last_message
+    config = load_config()
+    directory = os.path.join(BASE_DIR, config["photo"]["target_dir"])
+    files = os.listdir(directory) if os.path.isdir(directory) else []
+    deleted, total = delete_selected_files(directory, files)
+    last_message = {
+        "level": "success" if deleted == total else "error",
+        "text": f"Deleted all {deleted} photo capture(s).",
+    }
+    return redirect(url_for("index"))
+
+
 @app.route("/video/settings", methods=["POST"])
 def update_video_settings():
     config = load_config()
@@ -460,7 +569,7 @@ def update_video_settings():
     v["bitrate"] = request.form.get("bitrate", v["bitrate"])
     v["target_dir"] = request.form.get("target_dir", v["target_dir"])
     try:
-        v["segment_minutes"] = int(request.form.get("segment_minutes", v["segment_minutes"]))
+        v["segment_seconds"] = int(request.form.get("segment_seconds", v["segment_seconds"]))
     except ValueError:
         pass
     save_config(config)
@@ -484,8 +593,11 @@ def stop_video():
 def delete_video():
     global last_message
     config = load_config()
-    filename = request.form.get("filename", "")
     directory = os.path.join(BASE_DIR, config["video"]["target_dir"])
+    filename = request.form.get("filename", "")
+    if filename == get_active_video_file(directory):
+        last_message = {"level": "error", "text": "That segment is still being recorded -- can't delete it yet."}
+        return redirect(url_for("index"))
     if safe_delete(directory, filename):
         last_message = {"level": "success", "text": f"Deleted {filename}"}
     else:
@@ -498,7 +610,8 @@ def delete_selected_videos():
     global last_message
     config = load_config()
     directory = os.path.join(BASE_DIR, config["video"]["target_dir"])
-    selected = request.form.getlist("selected")
+    active = get_active_video_file(directory)
+    selected = [f for f in request.form.getlist("selected") if f != active]
     deleted, total = delete_selected_files(directory, selected)
     if total == 0:
         last_message = {"level": "error", "text": "Select at least one video first."}
@@ -514,9 +627,25 @@ def delete_selected_videos():
 def download_selected_videos():
     config = load_config()
     directory = os.path.join(BASE_DIR, config["video"]["target_dir"])
-    selected = request.form.getlist("selected")
+    active = get_active_video_file(directory)
+    selected = [f for f in request.form.getlist("selected") if f != active]
     response = build_zip_response(directory, selected, "videos_selected.zip")
     return response if response is not None else redirect(url_for("index"))
+
+
+@app.route("/video/delete_all", methods=["POST"])
+def delete_all_videos():
+    global last_message
+    config = load_config()
+    directory = os.path.join(BASE_DIR, config["video"]["target_dir"])
+    active = get_active_video_file(directory)
+    files = [f for f in os.listdir(directory) if f != active] if os.path.isdir(directory) else []
+    deleted, total = delete_selected_files(directory, files)
+    text = f"Deleted all {deleted} completed video segment(s)."
+    if active:
+        text += " (kept the segment currently being recorded)"
+    last_message = {"level": "success" if deleted == total else "error", "text": text}
+    return redirect(url_for("index"))
 
 
 @app.route("/video/combine", methods=["POST"])
@@ -529,8 +658,11 @@ def combine_videos():
 
     config = load_config()
     video_dir = os.path.join(BASE_DIR, config["video"]["target_dir"])
+    active = get_active_video_file(video_dir)
     filepaths = []
     for name in selected:
+        if name == active:
+            continue
         full = os.path.join(video_dir, os.path.basename(name))
         if os.path.isfile(full):
             filepaths.append(full)
@@ -628,6 +760,18 @@ def download_selected_combined():
     return response if response is not None else redirect(url_for("index"))
 
 
+@app.route("/combined/delete_all", methods=["POST"])
+def delete_all_combined():
+    global last_message
+    files = os.listdir(COMBINED_DIR) if os.path.isdir(COMBINED_DIR) else []
+    deleted, total = delete_selected_files(COMBINED_DIR, files)
+    last_message = {
+        "level": "success" if deleted == total else "error",
+        "text": f"Deleted all {deleted} combined video(s).",
+    }
+    return redirect(url_for("index"))
+
+
 @app.route("/downloads/photo/<path:filename>")
 def download_photo(filename):
     config = load_config()
@@ -655,12 +799,13 @@ if __name__ == "__main__":
     os.makedirs(os.path.join(BASE_DIR, cfg["video"]["target_dir"]), exist_ok=True)
     os.makedirs(COMBINED_DIR, exist_ok=True)
     os.makedirs(LOG_DIR, exist_ok=True)
-    if AUTO_START_MODE in ("photo", "video"):
-        start_process(AUTO_START_MODE, cfg)
+    default_mode = cfg.get("default_capture_mode", "none")
+    if default_mode in ("photo", "video"):
+        start_process(default_mode, cfg)
     try:
         # threaded=True so a slow combine operation doesn't block status
         # checks or other requests while it runs.
-        app.run(host="0.0.0.0", port=5020, debug=False, threaded=True)
+        app.run(host="0.0.0.0", port=WEB_PORT, debug=False, threaded=True)
     finally:
         stop_process("photo")
         stop_process("video")
